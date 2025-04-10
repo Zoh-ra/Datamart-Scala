@@ -2,8 +2,6 @@ package dc.paris.integration
 
 import org.apache.spark.sql.SparkSession
 
-import java.io.File
-
 
 
 object Main extends App {
@@ -20,4 +18,31 @@ object Main extends App {
     .config("fs.s3a.connection.establish.timeout", "1000")
     .config("fs.s3a.connection.timeout", "5000")
     .getOrCreate()
+
+  // Liste des URLs des fichiers Parquet à télécharger
+  val fileUrls = List(
+    "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-10.parquet",
+    "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-12.parquet",
+    "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-11.parquet"
+  )
+
+  // Répertoire local où les fichiers seront stockés
+  val outputDir = "data/raw"
+
+  // Télécharger et enregistrer chaque fichier
+  fileUrls.foreach { url =>
+    val fileName = url.split("/").last
+    val localPath = s"$outputDir/$fileName"
+
+    // Lire le fichier Parquet depuis l'URL
+    val df = spark.read.parquet(url)
+
+    // Sauvegarder le fichier localement dans le répertoire 'data/raw'
+    df.write.parquet(localPath)
+    println(s"Fichier téléchargé et enregistré sous : $localPath")
+  }
+
+  // Arrêter le Spark session
+  spark.stop()
+
 }
