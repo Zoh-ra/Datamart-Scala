@@ -4,14 +4,14 @@ import org.apache.spark.sql.SparkSession
 import java.net.URL
 import java.io.File
 import java.nio.file.{Files, Paths, StandardCopyOption}
+import io.github.cdimascio.dotenv.Dotenv
 
 
 object Main extends App {
-  val accessKey = System.getenv("ACCESS_KEY_ID")
-  val secretKey = System.getenv("SECRET_ACCESS_KEY")
+  val dotenv = Dotenv.load()
 
-  println(accessKey)
-  println(secretKey)
+  val accessKey = dotenv.get("ACCESS_KEY_ID")
+  val secretKey = dotenv.get("SECRET_ACCESS_KEY")
 
   val spark: SparkSession = SparkSession
     .builder()
