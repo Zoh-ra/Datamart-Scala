@@ -7,12 +7,18 @@ import java.nio.file.{Files, Paths, StandardCopyOption}
 
 
 object Main extends App {
+  val accessKey = System.getenv("ACCESS_KEY_ID")
+  val secretKey = System.getenv("SECRET_ACCESS_KEY")
+
+  println(accessKey)
+  println(secretKey)
+
   val spark: SparkSession = SparkSession
     .builder()
     .appName("Data Integration")
     .master("local[*]")
-    .config("fs.s3a.access.key", "feYIrRkftrx645QsECKw") // A renseigner
-    .config("fs.s3a.secret.key", "2RDLb99JSmwd8Zj1JcNPvK6t2LbaQnHSDp1cctRW") // A renseigner
+    .config("fs.s3a.access.key", accessKey)
+    .config("fs.s3a.secret.key", secretKey)
     .config("fs.s3a.endpoint", "http://localhost:9000/")
     .config("fs.s3a.path.style.access", "true")
     .config("fs.s3a.connection.ssl.enable", "false")
@@ -43,7 +49,7 @@ object Main extends App {
 
     // Lire avec Spark
     val df = spark.read.parquet(localPath)
-    df.write.parquet(s"$outputDir/processed_$fileName")
+    df.write.parquet(s"s3a://datalake/processed/$fileName")
     println(s"Fichier traité et sauvegardé dans : $outputDir/processed_$fileName")
   }
 
