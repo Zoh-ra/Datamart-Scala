@@ -1,7 +1,9 @@
 package dc.paris.integration
 
 import org.apache.spark.sql.SparkSession
-
+import java.net.URL
+import java.io.File
+import java.nio.file.{Files, Paths, StandardCopyOption}
 
 
 object Main extends App {
@@ -22,27 +24,28 @@ object Main extends App {
   // Liste des URLs des fichiers Parquet à télécharger
   val fileUrls = List(
     "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-10.parquet",
-    "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-12.parquet",
-    "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-11.parquet"
+    "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-11.parquet",
+    "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-12.parquet"
   )
 
   // Répertoire local où les fichiers seront stockés
-  val outputDir = "data/raw"
+  val outputDir = "../data/raw"
+  new File(outputDir).mkdirs()
 
-  // Télécharger et enregistrer chaque fichier
   fileUrls.foreach { url =>
     val fileName = url.split("/").last
     val localPath = s"$outputDir/$fileName"
 
-    // Lire le fichier Parquet depuis l'URL
-    val df = spark.read.parquet(url)
+    // Télécharger le fichier en local
+    val in = new URL(url).openStream()
+    Files.copy(in, Paths.get(localPath), StandardCopyOption.REPLACE_EXISTING)
+    println(s"Fichier téléchargé : $localPath")
 
-    // Sauvegarder le fichier localement dans le répertoire 'data/raw'
-    df.write.parquet(localPath)
-    println(s"Fichier téléchargé et enregistré sous : $localPath")
+    // Lire avec Spark
+    val df = spark.read.parquet(localPath)
+    df.write.parquet(s"$outputDir/processed_$fileName")
+    println(s"Fichier traité et sauvegardé dans : $outputDir/processed_$fileName")
   }
 
-  // Arrêter le Spark session
   spark.stop()
-
 }
