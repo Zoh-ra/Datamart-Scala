@@ -1,7 +1,8 @@
 package dc.paris.integration
 
 import org.apache.spark.sql.SparkSession
-import java.net.URL
+import java.net.http.{HttpClient, HttpRequest, HttpResponse}
+import java.net.URI
 import java.io.File
 import java.nio.file.{Files, Paths, StandardCopyOption}
 import io.github.cdimascio.dotenv.Dotenv
@@ -12,6 +13,8 @@ object Main extends App {
 
   val accessKey = dotenv.get("ACCESS_KEY_ID")
   val secretKey = dotenv.get("SECRET_ACCESS_KEY")
+
+  val client = HttpClient.newHttpClient()
 
   val spark: SparkSession = SparkSession
     .builder()
@@ -41,13 +44,15 @@ object Main extends App {
   fileUrls.foreach { url =>
     val fileName = url.split("/").last
     val localPath = s"$outputDir/$fileName"
+    val request = HttpRequest.newBuilder()
+      .uri(URI.create(url))
+      .build()
 
-    // Télécharger le fichier en local
-    val in = new URL(url).openStream()
-    Files.copy(in, Paths.get(localPath), StandardCopyOption.REPLACE_EXISTING)
+    val response = client.send(request, HttpResponse.BodyHandlers.ofInputStream())
+
+    Files.copy(response.body(), Paths.get(localPath), StandardCopyOption.REPLACE_EXISTING)
     println(s"Fichier téléchargé : $localPath")
 
-    // Lire avec Spark
     val df = spark.read.parquet(localPath)
     df.write.parquet(s"s3a://datalake/processed/$fileName")
     println(s"Fichier traité et sauvegardé dans : $outputDir/processed_$fileName")
