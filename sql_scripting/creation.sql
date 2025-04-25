@@ -1,7 +1,8 @@
 -- DIMENSIONS
 
 CREATE TABLE dim_vendor (
-    vendor_id SMALLINT PRIMARY KEY
+    vendor_id SMALLINT PRIMARY KEY,
+    vendor_description TEXT
 );
 
 CREATE TABLE dim_datetime (

@@ -6,20 +6,27 @@ CREATE EXTENSION IF NOT EXISTS dblink;
 -- 2. Connexion à l'autre serveur (Data Warehouse)
 -- Le nom de connexion ici est 'dwh_conn'
 SELECT dblink_connect('dwh_conn',
-  'host=data-warehouse port=5432 dbname=postgres user=postgres password=admin');
+  'host=data-warehouse port=5432 dbname=dbwarehouse user=postgres password=admin');
 
 -- 3. Insertions dans les dimensions
 -- potentiellement a partir d'ici que ca bug, connection dblink_connect Surement OK
 -- eVeriifier pouyr debuger
 -- dim_vendor
-INSERT INTO dim_vendor (vendor_id)
+INSERT INTO dim_vendor (vendor_id, vendor_name)
+VALUES
+  (1, 'Creative Mobile Technologies, LLC'),
+  (2, 'Curb Mobility, LLC'),
+  (6, 'Myle Technologies Inc'),
+  (7, 'Helix')
+ON CONFLICT DO NOTHING;
 SELECT DISTINCT vendor_id FROM dblink('dwh_conn',
-  'SELECT DISTINCT "VendorID" AS vendor_id FROM public.nyc_yellow_taxi_trips LIMIT 1')
+  'SELECT DISTINCT "vendor_id" AS vendor_id FROM public.nyc_yellow_taxi_trips')
 AS t(vendor_id SMALLINT);
 
 -- dim_payment_type
 INSERT INTO dim_payment_type (payment_type, payment_description)
 VALUES
+  (0, 'Flex Fare trip'),
   (1, 'Credit card'),
   (2, 'Cash'),
   (3, 'No charge'),
@@ -36,19 +43,20 @@ VALUES
   (3, 'Newark'),
   (4, 'Nassau or Westchester'),
   (5, 'Negotiated fare'),
-  (6, 'Group ride')
+  (6, 'Group ride'),
+  (99, 'Null/unknown')
 ON CONFLICT DO NOTHING;
 
 -- dim_location (pickup + dropoff)
 INSERT INTO dim_location (location_id)
 SELECT DISTINCT location_id FROM (
-  SELECT "PULocationID" AS location_id FROM dblink('dwh_conn',
-    'SELECT DISTINCT "PULocationID" FROM public.nyc_yellow_taxi_trips')
-  AS t(PULocationID INTEGER)
+  SELECT location_id FROM dblink('dwh_conn',
+    'SELECT DISTINCT "pulocationid" FROM public.nyc_yellow_taxi_trips')
+  AS t(location_id INTEGER)
   UNION
-  SELECT "DOLocationID" FROM dblink('dwh_conn',
-    'SELECT DISTINCT "DOLocationID" FROM public.nyc_yellow_taxi_trips')
-  AS t(DOLocationID INTEGER)
+  SELECT "dolocationid" FROM dblink('dwh_conn',
+    'SELECT DISTINCT "dolocationid" FROM public.nyc_yellow_taxi_trips')
+  AS t(dolocationid INTEGER)
 ) AS sub;
 
 -- dim_datetime
@@ -96,15 +104,15 @@ INSERT INTO fact_trips (
     airport_fee
 )
 SELECT
-    t.VendorID,
+    t.vendor_id,
     dp.datetime_id,
     dd.datetime_id,
     t.passenger_count,
     t.trip_distance,
     t.RatecodeID,
     t.store_and_fwd_flag,
-    t.PULocationID,
-    t.DOLocationID,
+    t.pulocationid,
+    t.dolocationid,
     t.payment_type,
     t.fare_amount,
     t.extra,
@@ -118,15 +126,15 @@ SELECT
 FROM dblink('dwh_conn',
   'SELECT * FROM public.nyc_yellow_taxi_trips')
 AS t(
-  VendorID SMALLINT,
+  vendor_id SMALLINT,
   tpep_pickup_datetime TIMESTAMP,
   tpep_dropoff_datetime TIMESTAMP,
   passenger_count SMALLINT,
   trip_distance REAL,
   RatecodeID SMALLINT,
   store_and_fwd_flag CHAR(1),
-  PULocationID INTEGER,
-  DOLocationID INTEGER,
+  pulocationid INTEGER,
+  dolocationid INTEGER,
   payment_type SMALLINT,
   fare_amount NUMERIC(10,2),
   extra NUMERIC(10,2),
