@@ -53,3 +53,4 @@ CREATE TABLE fact_trips (
     congestion_surcharge NUMERIC(10, 2),
     airport_fee NUMERIC(10, 2)
 );
+-- Mettre des index pour fact trips
