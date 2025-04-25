@@ -4,6 +4,12 @@
 CREATE EXTENSION IF NOT EXISTS dblink;
 
 -- 2. Connexion à l'autre serveur (Data Warehouse)
+-- insertion_dblink.sql (modèle en étoile avec dblink)
+
+-- 1. Activer l'extension dblink (si ce n'est pas déjà fait)
+CREATE EXTENSION IF NOT EXISTS dblink;
+
+-- 2. Connexion à l'autre serveur (Data Warehouse)
 -- Le nom de connexion ici est 'dwh_conn'
 SELECT dblink_connect('dwh_conn',
   'host=data-warehouse port=5432 dbname=dbwarehouse user=postgres password=admin');
@@ -12,16 +18,16 @@ SELECT dblink_connect('dwh_conn',
 -- potentiellement a partir d'ici que ca bug, connection dblink_connect Surement OK
 -- eVeriifier pouyr debuger
 -- dim_vendor
-INSERT INTO dim_vendor (vendor_id, vendor_name)
+INSERT INTO dim_vendor (vendor_id, vendor_description)
 VALUES
   (1, 'Creative Mobile Technologies, LLC'),
   (2, 'Curb Mobility, LLC'),
   (6, 'Myle Technologies Inc'),
   (7, 'Helix')
 ON CONFLICT DO NOTHING;
-SELECT DISTINCT vendor_id FROM dblink('dwh_conn',
-  'SELECT DISTINCT "vendor_id" AS vendor_id FROM public.nyc_yellow_taxi_trips')
-AS t(vendor_id SMALLINT);
+SELECT DISTINCT vendorid FROM dblink('dwh_conn',
+  'SELECT DISTINCT "vendorid" AS vendorid FROM public.nyc_yellow_taxi_trips')
+AS t(vendorid SMALLINT);
 
 -- dim_payment_type
 INSERT INTO dim_payment_type (payment_type, payment_description)
